@@ -1,0 +1,51 @@
+# Contributor: Christian Limpach <christian.limpach@gmail.com>
+
+_realname=krypton
+_gitname=kr
+pkgbase=mingw-w64-${_realname}
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+#conflicts=("${MINGW_PACKAGE_PREFIX}-xxx")
+pkgver=2.4.15
+pkgrel=1
+pkgdesc="krypton - Let\'s make two-factor easy & secure"
+arch=('any')
+license=('custom')
+depends=('curl' 'git' 'gnupg' 'openssh' 'procps-ng')
+makedepends=("git" "${MINGW_PACKAGE_PREFIX}-go")
+url="github.com/chrislimpach/${_gitname}"
+source=("${_realname}-${pkgver}"::"git+https://${url}.git#branch=windows-mingw")
+sha256sums=('SKIP')
+
+prepare() {
+  windows=
+  #[[ $OS == Windows* ]] && windows=1
+
+  cd ${srcdir}/${_realname}-${pkgver}
+
+  #TMPDIR="${LOCALAPPDATA:-$TMPDIR}"
+  #TMP_GOPATH="${TMPDIR:-/tmp}/go-${_realname}-${pkgver}"
+  #TMP_SELF="${TMP_GOPATH}/src/github.com/kryptco/${_gitname}"
+  TMP_GOPATH="${srcdir}/go-build"
+  TMP_SELF="${TMP_GOPATH}/src/github.com/kryptco/${_gitname}"
+
+  if [ -n "$windows" ]; then
+    export GOPATH="${TMP_GOPATH//\//\\}"
+  else
+    export GOPATH="${TMP_GOPATH}"
+  fi
+  echo "TMP_GOPATH: ${TMP_GOPATH}"
+  echo "GOPATH: ${GOPATH}"
+  echo "TMP_SELF: ${TMP_SELF}"
+
+  mkdir -p "${TMP_SELF%/*}"
+  ln -snf "$PWD" "$TMP_SELF" 2>/dev/null || {
+    rm -rf "$TMP_SELF"
+    mkdir "$TMP_SELF"
+    cp -R "$PWD"/* "${TMP_SELF}/"
+  }
+}
+
+package() {
+
+  (cd "${TMP_SELF}" && GOROOT=${MINGW_PREFIX}/lib/go make DESTDIR=${pkgdir} PREFIX=${MINGW_PREFIX} install)
+}
